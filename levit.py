@@ -381,6 +381,7 @@ class LeViT(torch.nn.Module):
         self.num_features = embed_dim[-1]
         self.embed_dim = embed_dim
         self.distillation = distillation
+        self.pool = torch.nn.AdaptiveAvgPool2d(img_size // 16)
 
         self.patch_embed = hybrid_backbone
 
@@ -446,6 +447,7 @@ class LeViT(torch.nn.Module):
 
     def forward(self, x):
         x = self.patch_embed(x)
+        x = self.pool(x)
         x = x.flatten(2).transpose(1, 2)
         x = self.blocks(x)
         x = x.mean(1)
@@ -487,7 +489,15 @@ def model_factory(C, D, X, N, drop_path, weights,
     if pretrained:
         checkpoint = torch.hub.load_state_dict_from_url(
             weights, map_location='cpu')
-        model.load_state_dict(checkpoint['model'])
+        checkpoint_model = checkpoint['model']
+        state_dict = model.state_dict()
+        for k in list(state_dict.keys()):
+            if not k.startswith("head"):
+                continue
+            if k in checkpoint_model and checkpoint_model[k].shape != state_dict[k].shape:
+                print(f"Removing key {k} from pretrained checkpoint")
+                checkpoint_model.pop(k)
+        model.load_state_dict(checkpoint_model, strict=False)
     if fuse:
         utils.replace_batchnorm(model)
 
