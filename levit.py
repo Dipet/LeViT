@@ -7,8 +7,8 @@
 
 import torch
 import itertools
-import utils
 
+from . import  utils
 from timm.models.vision_transformer import trunc_normal_
 from timm.models.registry import register_model
 
