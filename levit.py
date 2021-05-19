@@ -347,6 +347,9 @@ class AttentionSubsample(torch.nn.Module):
         q = self.q(x).view(B, self.resolution_2, self.num_heads,
                            self.key_dim).permute(0, 2, 1, 3)
 
+        if hasattr(self, "ab"):
+            self.ab = self.ab.to(x.device)
+
         attn = (q @ k.transpose(-2, -1)) * self.scale + \
             (self.attention_biases[:, self.attention_bias_idxs]
              if self.training else self.ab)
